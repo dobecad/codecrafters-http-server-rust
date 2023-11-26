@@ -21,6 +21,7 @@ fn main() -> Result<()> {
                 stream
                     .write_all(response.as_bytes())
                     .context("failed to write to TcpStream")?;
+                stream.flush()?;
             }
             Err(e) => {
                 println!("error: {}", e);
