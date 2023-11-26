@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
-use std::io::Write;
-use std::net::{SocketAddr, TcpListener};
+use std::{
+    io::Write,
+    net::{SocketAddr, TcpListener},
+};
 
 fn main() -> Result<()> {
     let socketaddr = SocketAddr::from(([127, 0, 0, 1], 4221));
