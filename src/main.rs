@@ -14,7 +14,7 @@ fn main() -> Result<()> {
                 println!("accepted new connection");
                 let response = "HTTP/1.1 200 OK\r\n\r\n";
                 stream
-                    .write(response.as_bytes())
+                    .write_all(response.as_bytes())
                     .context("failed to write to TcpStream")?;
             }
             Err(e) => {
