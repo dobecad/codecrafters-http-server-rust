@@ -52,11 +52,30 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
             let response = "HTTP/1.1 200 OK\r\n\r\n";
             send_response(stream, response)?;
         }
+        path if path.starts_with("/echo/") => {
+            echo_handler(stream, path)?;
+        }
         _ => {
             let response = "HTTP/1.1 404 Not Found\r\n\r\n";
             send_response(stream, response)?;
         }
     }
+
+    Ok(())
+}
+
+fn echo_handler(stream: TcpStream, path: &str) -> Result<()> {
+    let content = path
+        .split("/echo/")
+        .nth(1)
+        .context("missing echo content")?;
+    let mut response_parts: Vec<String> = vec!["HTTP/1.1 200 Ok\r\n".to_string()];
+    response_parts.push("Content-Type: text/plain\r\n".to_string());
+    response_parts.push(format!("Content-Length: {}\r\n", content.len()));
+    response_parts.push("\r\n".to_string());
+    response_parts.push(content.to_string());
+    let response = response_parts.join("");
+    send_response(stream, &response)?;
 
     Ok(())
 }
