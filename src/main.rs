@@ -57,6 +57,7 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
             echo_handler(stream, path)?;
         }
         path if path.starts_with("/user-agent") => header_handler(stream, parts)?,
+        path if path.starts_with("/files/") => file_handler(stream, path)?,
         _ => {
             let response = "HTTP/1.1 404 Not Found\r\n\r\n";
             send_response(stream, response)?;
@@ -111,6 +112,36 @@ fn header_handler(stream: TcpStream, parts: Vec<String>) -> Result<()> {
     });
     let response = response_parts.join("");
     send_response(stream, &response)?;
+    Ok(())
+}
+
+fn file_handler(stream: TcpStream, path: &str) -> Result<()> {
+    let mut directory_name = String::new();
+    let args: Vec<_> = std::env::args().collect();
+    args.get(1).map(|v| {
+        if v == "--directory" {
+            directory_name = args.get(2).expect("missing directory name").clone();
+        }
+    });
+
+    let file_name = path.split("/files/").nth(1).context("missing file name")?;
+
+    let file_contents = std::fs::read(format!("{directory_name}/{file_name}"));
+    match file_contents {
+        Ok(contents) => {
+            let mut response_parts: Vec<String> = vec!["HTTP/1.1 200 Ok\r\n".to_string()];
+            response_parts.push("Content-Type: application/octet\r\n".to_string());
+            response_parts.push(format!("Content-Length: {}\r\n", contents.len()));
+            response_parts.push("\r\n".to_string());
+            response_parts.push(String::from_utf8(contents).context("file not utf-8")?);
+            let response = response_parts.join("");
+            send_response(stream, &response)?;
+        }
+        Err(_) => {
+            send_response(stream, "HTTP/1.1 404 Not Found\r\n\r\n")?;
+        }
+    }
+
     Ok(())
 }
 
