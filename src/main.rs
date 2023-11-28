@@ -21,7 +21,7 @@ fn main() -> Result<()> {
                 });
             }
             Err(e) => {
-                println!("error: {}", e);
+                eprintln!("error: {}", e);
             }
         }
     }
