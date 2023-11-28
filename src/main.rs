@@ -57,7 +57,7 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
             echo_handler(stream, path)?;
         }
         path if path.starts_with("/user-agent") => header_handler(stream, parts)?,
-        path if path.starts_with("/files/") => file_handler(stream, path)?,
+        path if path.starts_with("/files/") => file_handler(stream, path, contents)?,
         _ => {
             let response = "HTTP/1.1 404 Not Found\r\n\r\n";
             send_response(stream, response)?;
@@ -115,7 +115,11 @@ fn header_handler(stream: TcpStream, parts: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-fn file_handler(stream: TcpStream, path: &str) -> Result<()> {
+fn file_handler(
+    stream: TcpStream,
+    path: &str,
+    request_contents: std::borrow::Cow<'_, str>,
+) -> Result<()> {
     let mut directory_name = String::new();
     let args: Vec<_> = std::env::args().collect();
     args.get(1).map(|v| {
@@ -126,6 +130,29 @@ fn file_handler(stream: TcpStream, path: &str) -> Result<()> {
 
     let file_name = path.split("/files/").nth(1).context("missing file name")?;
 
+    if request_contents.starts_with("POST") {
+        upload_file(stream, &directory_name, file_name, request_contents)?;
+    } else {
+        read_file(stream, &directory_name, file_name)?;
+    }
+
+    Ok(())
+}
+
+fn upload_file(
+    stream: TcpStream,
+    directory_name: &str,
+    file_name: &str,
+    request_contents: std::borrow::Cow<'_, str>,
+) -> Result<()> {
+    let contents = request_contents.as_bytes();
+    std::fs::write(format!("{directory_name}/{file_name}"), contents)
+        .context("failed to write file")?;
+    send_response(stream, "HTTP/1.1 201\r\n\r\n")?;
+    Ok(())
+}
+
+fn read_file(stream: TcpStream, directory_name: &str, file_name: &str) -> Result<()> {
     let file_contents = std::fs::read(format!("{directory_name}/{file_name}"));
     match file_contents {
         Ok(contents) => {
@@ -141,7 +168,6 @@ fn file_handler(stream: TcpStream, path: &str) -> Result<()> {
             send_response(stream, "HTTP/1.1 404 Not Found\r\n\r\n")?;
         }
     }
-
     Ok(())
 }
 
