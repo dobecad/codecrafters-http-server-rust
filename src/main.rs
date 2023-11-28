@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use std::{
     collections::HashMap,
+    fs::File,
     io::Read,
     io::Write,
     net::{SocketAddr, TcpListener, TcpStream},
@@ -147,13 +148,13 @@ fn upload_file(
 ) -> Result<()> {
     let parts: Vec<String> = request_contents
         .lines()
-        .map(|line| line.to_string())
+        .map(|line| line.trim_end_matches(char::from(0)).to_string())
         .collect();
-    let mut contents: Vec<u8> = Vec::from(parts[parts.len() - 1].as_bytes());
-    contents.push(0);
-    contents.shrink_to_fit();
-    std::fs::write(format!("{directory_name}/{file_name}"), contents)
-        .context("failed to write file")?;
+    let contents = parts[parts.len() - 1].as_bytes();
+    let mut file =
+        File::create(format!("{directory_name}/{file_name}")).context("failed to create file")?;
+    file.write_all(&contents)
+        .context("failed to write to file")?;
     send_response(stream, "HTTP/1.1 201\r\n\r\n")?;
     Ok(())
 }
