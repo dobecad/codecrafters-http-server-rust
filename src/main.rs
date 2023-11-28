@@ -100,7 +100,6 @@ fn header_handler(stream: TcpStream, parts: Vec<String>) -> Result<()> {
             }
         });
     });
-    println!("Headers: {headers:?}");
 
     let mut response_parts: Vec<String> = vec!["HTTP/1.1 200 Ok\r\n".to_string()];
     response_parts.push("Content-Type: text/plain\r\n".to_string());
@@ -108,7 +107,7 @@ fn header_handler(stream: TcpStream, parts: Vec<String>) -> Result<()> {
     response_parts.push("\r\n".to_string());
 
     headers.values().for_each(|v| {
-        response_parts.push(format!("{v}\r\n"));
+        response_parts.push(format!("{v}"));
     });
     let response = response_parts.join("");
     send_response(stream, &response)?;
