@@ -145,8 +145,12 @@ fn upload_file(
     file_name: &str,
     request_contents: std::borrow::Cow<'_, str>,
 ) -> Result<()> {
-    let parts: Vec<String> = request_contents.lines().map(|line| line.to_string()).collect();
-    let contents = parts[parts.len() - 1].as_bytes();
+    let parts: Vec<String> = request_contents
+        .lines()
+        .map(|line| line.to_string())
+        .collect();
+    let mut contents: Vec<u8> = Vec::from(parts[parts.len() - 1].as_bytes());
+    contents.push(0);
     std::fs::write(format!("{directory_name}/{file_name}"), contents)
         .context("failed to write file")?;
     send_response(stream, "HTTP/1.1 201\r\n\r\n")?;
