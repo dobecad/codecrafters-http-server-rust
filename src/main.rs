@@ -90,21 +90,20 @@ fn header_handler(stream: TcpStream, parts: Vec<String>) -> Result<()> {
         .collect();
 
     let mut headers: HashMap<&str, &str> = HashMap::new();
+    let mut content_len = 0;
     let _ = content.iter().for_each(|part| {
-        let header: Vec<&str> = part.split(':').collect();
-        if header.len() == 2 {
-            headers.insert(header.get(0).unwrap(), header.get(1).unwrap());
-        }
+        let header = part.split_once(':');
+        header.map(|h| {
+            if h.0 == "User-Agent" {
+                headers.insert(h.0, h.1);
+                content_len += h.1.len();
+            }
+        });
     });
-    headers.remove("Host");
+    println!("Headers: {headers:?}");
 
     let mut response_parts: Vec<String> = vec!["HTTP/1.1 200 Ok\r\n".to_string()];
     response_parts.push("Content-Type: text/plain\r\n".to_string());
-
-    let mut content_len = 0;
-    headers.values().for_each(|v| {
-        content_len += v.as_bytes().len();
-    });
     response_parts.push(format!("Content-Length: {}\r\n", content_len));
     response_parts.push("\r\n".to_string());
 
