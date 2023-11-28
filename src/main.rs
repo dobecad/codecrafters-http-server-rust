@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use std::{
+    collections::HashMap,
     io::Read,
     io::Write,
     net::{SocketAddr, TcpListener, TcpStream},
@@ -55,6 +56,7 @@ fn handle_connection(mut stream: TcpStream) -> Result<()> {
         path if path.starts_with("/echo/") => {
             echo_handler(stream, path)?;
         }
+        path if path.starts_with("/user-agent") => header_handler(stream, parts)?,
         _ => {
             let response = "HTTP/1.1 404 Not Found\r\n\r\n";
             send_response(stream, response)?;
@@ -77,6 +79,40 @@ fn echo_handler(stream: TcpStream, path: &str) -> Result<()> {
     let response = response_parts.join("");
     send_response(stream, &response)?;
 
+    Ok(())
+}
+
+fn header_handler(stream: TcpStream, parts: Vec<String>) -> Result<()> {
+    let content: Vec<String> = parts
+        .iter()
+        .filter(|part| part.contains(":"))
+        .map(|part| part.replace(" ", ""))
+        .collect();
+
+    let mut headers: HashMap<&str, &str> = HashMap::new();
+    let _ = content.iter().for_each(|part| {
+        let header: Vec<&str> = part.split(':').collect();
+        if header.len() == 2 {
+            headers.insert(header.get(0).unwrap(), header.get(1).unwrap());
+        }
+    });
+    headers.remove("Host");
+
+    let mut response_parts: Vec<String> = vec!["HTTP/1.1 200 Ok\r\n".to_string()];
+    response_parts.push("Content-Type: text/plain\r\n".to_string());
+
+    let mut content_len = 0;
+    headers.values().for_each(|v| {
+        content_len += v.as_bytes().len();
+    });
+    response_parts.push(format!("Content-Length: {}\r\n", content_len));
+    response_parts.push("\r\n".to_string());
+
+    headers.values().for_each(|v| {
+        response_parts.push(format!("{v}\r\n"));
+    });
+    let response = response_parts.join("");
+    send_response(stream, &response)?;
     Ok(())
 }
 
