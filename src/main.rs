@@ -130,7 +130,7 @@ fn file_handler(stream: TcpStream, path: &str) -> Result<()> {
     match file_contents {
         Ok(contents) => {
             let mut response_parts: Vec<String> = vec!["HTTP/1.1 200 Ok\r\n".to_string()];
-            response_parts.push("Content-Type: application/octet\r\n".to_string());
+            response_parts.push("Content-Type: application/octet-stream\r\n".to_string());
             response_parts.push(format!("Content-Length: {}\r\n", contents.len()));
             response_parts.push("\r\n".to_string());
             response_parts.push(String::from_utf8(contents).context("file not utf-8")?);
